@@ -20,6 +20,25 @@
 
 ;;; Commentary:
 
+;; emamux-ruby-test makes you test ruby file with emamux.
+;; This package is inspired by vimux-ruby-test.
+;;
+;; To use emamux-ruby-test, add the following code into your init.el or .emacs:
+;;
+;;    (require 'emamux-ruby-test)
+;;
+;; emamux-ruby-test provides following commands:
+;;
+;; Run all tests/specs in the current file
+;;     M-x emamux-ruby-test:run-all
+;;
+;; Run focused test/spec
+;;     M-x emamux-ruby-test:run-focused-test
+;;
+;; Run current context(rspec, shoulda)
+;;     M-x emamux-ruby-test:run-focused-context
+;;
+
 ;;; Code:
 
 (eval-when-compile
