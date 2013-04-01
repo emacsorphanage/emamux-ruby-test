@@ -1,6 +1,6 @@
 ;;; emamux-ruby-test.el --- Ruby test with emamux
 
-;; Copyright (C) 2012 by Syohei YOSHIDA
+;; Copyright (C) 2013 by Syohei YOSHIDA
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emamux-ruby-test
@@ -138,12 +138,14 @@
 (defun emamux-rt:run-context (cmd file line)
   (emamux:run-command (format "%s %s -l %s" cmd file line)))
 
+;;;###autoload
 (defun emamux-ruby-test:run-all ()
   (interactive)
   (let* ((file (buffer-file-name))
          (cmd  (emamux-rt:test-command file)))
     (emamux:run-command (format "%s %s" cmd file))))
 
+;;;###autoload
 (defun emamux-ruby-test:run-focused-test ()
   (interactive)
   (let ((file (buffer-file-name)))
@@ -151,6 +153,7 @@
         (emamux-rt:run-spec file)
       (emamux-rt:run-unit-test file (emamux-rt:search-current-method)))))
 
+;;;###autoload
 (defun emamux-ruby-test:run-focused-context ()
   (interactive)
   (let ((ret (emamux-rt:search-current-context))
