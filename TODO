@@ -1,0 +1,15 @@
+ -*- mode: org; -*-
+
+* add support for following test tools
+
+** minitest via "rake test"
+
+** tconsole
+
+** turn -i
+
+** rspec spec
+
+* use projectile functions
+
+* detect Gemfile and exec commands via bundler
