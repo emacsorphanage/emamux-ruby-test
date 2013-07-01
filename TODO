@@ -2,15 +2,14 @@
 
 * appearance
 
-** TODO minor mode
+** DONE minor mode
   (add-hook 'ruby-mode-hook 'emamux-ruby-test-mode)
 
-** TODO mode map
-   C-c r a
-   C-c r f
-   C-c r c
+** DONE mode map
+   C-c r t
+   C-c r T
 
-** TODO make project-type and project-root variables buffer local
+** DONE make project-type and project-root variables buffer local
 
 * functionality
 

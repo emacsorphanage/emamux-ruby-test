@@ -10,6 +10,14 @@ Requirements
 * tmux 1.5
 
 
+Installation
+------------
+Add following lines to your emacs config file
+
+    (require 'emamux-ruby-test)
+    (add-hook 'ruby-mode-hook 'emamux-ruby-test-mode)
+
+
 Basic Usage
 -----------
 
