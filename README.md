@@ -28,3 +28,7 @@ Run test of this project within runner pane
 Run test of this file within runner pane
 
     M-x emamux-ruby-test:run-current-test
+
+Load ruby console dependent of current project type
+
+    M-x emamux-ruby-test:console

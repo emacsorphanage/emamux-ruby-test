@@ -37,6 +37,9 @@
 ;; Run all tests/specs in the current file
 ;;     M-x emamux-ruby-test:run-current-test
 ;;
+;; Load ruby console dependent of current project type
+;;     M-x emamux-ruby-test:console
+;;
 
 ;;; Code:
 
@@ -64,10 +67,18 @@
 (defvar emamux-rt:project-test-command nil
   "Test command for current project.")
 
+(defvar emamux-rt:project-console-command nil
+  "Console command for current project.")
+
+(defvar emamux-rt:project-test-current-pattern nil
+  "Pattern string with single test runner format.")
+
 (mapc #'make-variable-buffer-local
       (list 'emamux-rt:project-root
             'emamux-rt:project-type
-            'emamux-rt:project-test-command))
+            'emamux-rt:project-test-command
+            'emamux-rt:project-console-command
+            'emamux-rt:project-test-current-pattern))
 
 
 ;;; Projects functions.
@@ -82,15 +93,19 @@
       (emamux-rt:relative-file-name file)
     (projectile-find-matching-test file)))
 
-(defun emamux-rt:run-test-engine (test &optional definition)
-  "Run TEST with current test engine."
-  (let ((cmd (cond
-              ((member emamux-rt:project-type '(rails-rspec ruby-rspec))
-               (format "%s %s" projectile-ruby-rspec-cmd test))
-              ((member emamux-rt:project-type '(rails-test ruby-test))
-               (format "%s TEST=%s" projectile-ruby-test-cmd test))
-              (t (error "No test engine found")))))
-    (emamux:run-command cmd emamux-rt:project-root)))
+(defun emamux-rt:select-engine (selector)
+  "Engine-based project parameters generator."
+  (cond
+   ((eq selector 'console-command)
+    (cond
+     ((member emamux-rt:project-type '(rails-rspec rails-test)) "bundle exec rails console")
+     ((member emamux-rt:project-type '(ruby-rspec ruby-test)) "bundle console")
+     (t (error "No console type found"))))
+   ((eq selector 'test-current-file)
+    (cond
+     ((member emamux-rt:project-type '(rails-rspec ruby-rspec)) (concat projectile-ruby-rspec-cmd " %s"))
+     ((member emamux-rt:project-type '(rails-test ruby-test)) (concat projectile-ruby-test-cmd " TEST=%s"))
+     (t (error "No test engine found"))))))
 
 
 ;;; Runner functions.
@@ -103,9 +118,14 @@
 (defun emamux-ruby-test:run-current-test ()
   "Run all tests/specs in the current file."
   (interactive)
-  (emamux-rt:run-test-engine
-   (emamux-rt:relative-test-name
-    (buffer-file-name))))
+  (emamux:run-command
+   (format emamux-rt:project-test-current-pattern
+           (emamux-rt:relative-test-name (buffer-file-name)))))
+
+(defun emamux-ruby-test:console ()
+  "Load ruby console dependent of current project type."
+  (interactive)
+  (emamux:run-command emamux-rt:project-console-command emamux-rt:project-root))
 
 
 ;;; Minor mode definition.
@@ -115,8 +135,9 @@
     (let ((prefix-map (make-sparse-keymap)))
       (define-key prefix-map (kbd "T") 'emamux-ruby-test:run-all)
       (define-key prefix-map (kbd "t") 'emamux-ruby-test:run-current-test)
-      (define-key prefix-map (kbd "r") 'emamux:close-runner-pane)
-      (define-key prefix-map (kbd "f") 'emamux:inspect-runner)
+      (define-key prefix-map (kbd "c") 'emamux-ruby-test:console)
+      (define-key prefix-map (kbd "k") 'emamux:close-runner-pane)
+      (define-key prefix-map (kbd "r") 'emamux:inspect-runner)
 
       (define-key map emamux-ruby-test-keymap-prefix prefix-map))
     map)
@@ -133,7 +154,11 @@
   (setq emamux-rt:project-root (projectile-project-root))
   (setq emamux-rt:project-type (projectile-project-type))
   (setq emamux-rt:project-test-command
-        (projectile-test-command emamux-rt:project-root)))
+        (projectile-test-command emamux-rt:project-root))
+  (setq emamux-rt:project-console-command
+        (emamux-rt:select-engine 'console-command))
+  (setq emamux-rt:project-test-current-pattern
+        (emamux-rt:select-engine 'test-current-file)))
 
 (defun emamux-ruby-test-on ()
   "Enable emamux-ruby-test minor mode."

@@ -22,6 +22,6 @@
 ** TODO emamux-ruby-test:run-focused-test
    - bundle exec tconsole
 
-** TODO emamux-ruby-test:console
+** DONE emamux-ruby-test:console
    - bundle exec rails console
    - bundle console
