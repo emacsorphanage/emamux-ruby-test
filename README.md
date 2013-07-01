@@ -13,14 +13,10 @@ Requirements
 Basic Usage
 -----------
 
-Run test of this file within runner pane
+Run test of this project within runner pane
 
     M-x emamux-ruby-test:run-all
 
-Run test of focused test(current posion method or test/should block)
+Run test of this file within runner pane
 
-    M-x emamux-ruby-test:run-focused-test
-
-Run test of focused contest(current posion context/describe block)
-
-    M-x emamux-ruby-test:run-focused-context
+    M-x emamux-ruby-test:run-current-test

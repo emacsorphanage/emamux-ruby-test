@@ -1,15 +1,28 @@
  -*- mode: org; -*-
 
-* add support for following test tools
+* appearance
 
-** minitest via "rake test"
+** TODO minor mode
+  (add-hook 'ruby-mode-hook 'emamux-ruby-test-mode)
 
-** tconsole
+** TODO mode map
+   C-c r a
+   C-c r f
+   C-c r c
 
-** turn -i
+** TODO make project-type and project-root variables buffer local
 
-** rspec spec
+* functionality
 
-* use projectile functions
+** DONE emamux-ruby-test:run-all
 
-* detect Gemfile and exec commands via bundler
+** DONE emamux-ruby-test:run-current-test
+   - bundle exec rake test TEST=test/functional/some_controller_test.rb
+   - bundle exec rspec spec/controllers/some_controller_spec.rb
+
+** TODO emamux-ruby-test:run-focused-test
+   - bundle exec tconsole
+
+** TODO emamux-ruby-test:console
+   - bundle exec rails console
+   - bundle console
