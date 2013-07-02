@@ -4,7 +4,7 @@
 
 ;; Author: Syohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emamux-ruby-test
-;; Package-Requires: ((emamux "0.01"))
+;; Package-Requires: ((emamux "0.01") (projectile "0.9.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -27,17 +27,18 @@
 ;; To use emamux-ruby-test, add the following code into your init.el or .emacs:
 ;;
 ;;    (require 'emamux-ruby-test)
+;;    (add-hook 'ruby-mode-hook 'emamux-ruby-test-mode)
 ;;
 ;; emamux-ruby-test provides following commands:
 ;;
-;; Run all tests/specs in the current file
+;; Run all tests/specs in the current project
 ;;     M-x emamux-ruby-test:run-all
 ;;
-;; Run focused test/spec
-;;     M-x emamux-ruby-test:run-focused-test
+;; Run all tests/specs in the current file
+;;     M-x emamux-ruby-test:run-current-test
 ;;
-;; Run current context(rspec, shoulda)
-;;     M-x emamux-ruby-test:run-focused-context
+;; Load ruby console dependent of current project type
+;;     M-x emamux-ruby-test:run-console
 ;;
 
 ;;; Code:
@@ -46,126 +47,115 @@
   (require 'cl))
 
 (require 'emamux)
+(require 'projectile)
 
-(defun emamux-rt:spec-p (file)
-  (string-match "\\(spec_\\|_spec\\)" file))
+(defgroup emamux-ruby-test nil
+  "Ruby test with emamux"
+  :group 'tools)
 
-(defun emamux-rt:top-directory-p (dir)
-  (let ((default-directory dir))
-    (loop for file in '("Rakefile")
-          when (file-exists-p file)
-          return t)))
+(defcustom emamux-ruby-test-keymap-prefix (kbd "C-c r")
+  "Keymap prefix for emamux-ruby-test mode."
+  :group 'emamux-ruby-test
+  :type 'string)
 
-(defun emamux-rt:parent-dir (dir)
-  (file-name-directory (replace-regexp-in-string "/$" "" dir)))
+(defvar emamux-rt:project-root nil
+  "Absolute path to ruby project.")
 
-(defun emamux-rt:find-top-dir ()
-  (let ((dir (file-name-directory (buffer-file-name))))
-    (while (and (not (string= dir "/"))
-                (not (emamux-rt:top-directory-p dir)))
-      (setq dir (emamux-rt:parent-dir dir)))
-    (if (string= dir "/")
-        (error "Are you in Ruby module directory ?"))
-    (file-name-as-directory dir)))
+(defvar emamux-rt:project-type nil
+  "Ruby project type specification.")
 
-(defun emamux-rt:spec-command ()
-  (let ((default-directory (emamux-rt:find-top-dir))
-        (version (emamux-rt:bundle-rspec-version)))
-    (cond ((file-exists-p "Gemfile")
-           (if (and version (< version 2))
-               "bundle exec spec"
-             "bundle exec rspec"))
-          ((executable-find "rspec") "rspec")
-          ((executable-find "spec")  "spec")
-          (t (error "Please install RSpec")))))
+(mapc #'make-variable-buffer-local
+      (list 'emamux-rt:project-root
+            'emamux-rt:project-type))
 
-(defun emamux-rt:bundle-rspec-version ()
-  (let ((version (shell-command-to-string "bundle show rspec")))
-    (if (string-match "\\([0-9]+\.[0-9]+\\)\.[0-9]+$" version)
-        (string-to-number (match-string 1 version)))))
+
+;;; Projects functions.
 
-(defun emamux-rt:run-spec (file &optional test-line)
-  (let ((cmd (emamux-rt:spec-command))
-        (line (or test-line (line-number-at-pos (point)))))
-   (emamux:run-command (format "%s %s -l %d" cmd file line))))
+(defun emamux-rt:relative-file-name (file)
+  "Return relative path name for FILE."
+  (substring file (length emamux-rt:project-root)))
 
-(defun emamux-rt:test-in-def ()
-  (save-excursion
-    (if (re-search-backward "def \\(test_[a-zA-Z0-9]+\\)" nil t)
-        (match-string-no-properties 1))))
+(defun emamux-rt:relative-test-name (file)
+  "Return relative test name for FILE."
+  (if (projectile-test-file-p file)
+      (emamux-rt:relative-file-name file)
+    (or (projectile-find-matching-test file)
+        (error "No corresponding test/spec found"))))
 
-(defun emamux-rt:test-in-test ()
-  (save-excursion
-    (if (re-search-backward "test +\"\\([^\"]+\\)\"" nil t)
-        (match-string-no-properties 1))))
+(defun emamux-rt:test-command ()
+  "Return command to test whole project"
+  (projectile-test-command emamux-rt:project-root))
 
-(defun emamux-rt:test-in-def ()
-  (save-excursion
-    (if (re-search-backward "should +\"\\([^\"]+\\)\"" nil t)
-        (match-string-no-properties 1))))
+(defun emamux-rt:console-command ()
+  "Return command appropriate to start project console."
+  (cond
+   ((member emamux-rt:project-type '(rails-rspec rails-test)) "bundle exec rails console")
+   ((member emamux-rt:project-type '(ruby-rspec ruby-test)) "bundle console")
+   (t (error "No console type found"))))
 
-(defun emamux-rt:search-current-method ()
-  (or (emamux-rt:test-in-def)
-      (emamux-rt:test-in-test)
-      (emamux-rt:test-in-should)
-      (error "Are you in method or test/should block")))
+(defun emamux-rt:current-test-pattern ()
+  "Return string appropriate for formatting current test command."
+  (cond
+   ((member emamux-rt:project-type '(rails-rspec ruby-rspec)) (concat projectile-ruby-rspec-cmd " %s"))
+   ((member emamux-rt:project-type '(rails-test ruby-test)) (concat projectile-ruby-test-cmd " TEST=%s"))
+   (t (error "No test engine found"))))
 
-(defun emamux-rt:test-command (file)
-  (if (emamux-rt:spec-p file)
-      (emamux-rt:spec-command)
-    "ruby"))
+
+;;; Runner functions.
 
-(defun emamux-rt:run-unit-test (file method)
-  (emamux:run-command (format "ruby %s -n %s" file method)))
-
-(defun emamux-rt:quoted-context ()
-  (let ((re "\\(context\\|describe\\) +\\(\"\\|'\\)\\([^\\2]+?\\)\\2"))
-    (save-excursion
-      (if (re-search-backward re nil t)
-          (cons (match-string-no-properties 3)
-                (line-number-at-pos (match-beginning 1)))))))
-
-(defun emamux-rt:noquoted-context ()
-  (let ((re "\\(context\\|describe\\) +\\([^ ]+\\)"))
-    (save-excursion
-      (if (re-search-backward re nil t)
-          (cons (match-string-no-properties 2)
-                (line-number-at-pos (match-beginning 1)))))))
-
-(defun emamux-rt:search-current-context ()
-  (or (emamux-rt:quoted-context)
-      (emamux-rt:noquoted-context)))
-
-(defun emamux-rt:run-context (cmd file line)
-  (emamux:run-command (format "%s %s -l %s" cmd file line)))
-
-;;;###autoload
 (defun emamux-ruby-test:run-all ()
+  "Run all tests/specs in the current project."
   (interactive)
-  (let* ((file (buffer-file-name))
-         (cmd  (emamux-rt:test-command file)))
-    (emamux:run-command (format "%s %s" cmd file))))
+  (emamux:run-command (emamux-rt:test-command) emamux-rt:project-root))
+
+(defun emamux-ruby-test:run-console ()
+  "Load ruby console dependent of current project type."
+  (interactive)
+  (emamux:run-command (emamux-rt:console-command) emamux-rt:project-root))
+
+(defun emamux-ruby-test:run-current-test ()
+  "Run all tests/specs in the current file."
+  (interactive)
+  (emamux:run-command
+   (format
+    (emamux-rt:current-test-pattern)
+    (emamux-rt:relative-test-name (buffer-file-name)))
+   emamux-rt:project-root))
+
+
+;;; Minor mode definition.
+
+(defvar emamux-ruby-test-mode-map
+  (let ((map (make-sparse-keymap)))
+    (let ((prefix-map (make-sparse-keymap)))
+      (define-key prefix-map (kbd "T") 'emamux-ruby-test:run-all)
+      (define-key prefix-map (kbd "c") 'emamux-ruby-test:run-console)
+      (define-key prefix-map (kbd "t") 'emamux-ruby-test:run-current-test)
+      (define-key prefix-map (kbd "k") 'emamux:close-runner-pane)
+      (define-key prefix-map (kbd "r") 'emamux:inspect-runner)
+
+      (define-key map emamux-ruby-test-keymap-prefix prefix-map))
+    map)
+  "Keymap for emamux-ruby-test mode.")
 
 ;;;###autoload
-(defun emamux-ruby-test:run-focused-test ()
-  (interactive)
-  (let ((file (buffer-file-name)))
-    (if (emamux-rt:spec-p file)
-        (emamux-rt:run-spec file)
-      (emamux-rt:run-unit-test file (emamux-rt:search-current-method)))))
+(define-minor-mode emamux-ruby-test-mode
+  "Minor mode to Ruby test with emamux.
 
-;;;###autoload
-(defun emamux-ruby-test:run-focused-context ()
-  (interactive)
-  (let ((ret (emamux-rt:search-current-context))
-        (file (buffer-file-name)))
-    (unless ret
-      (error "Failed searching current context"))
-    (let ((method (car ret))
-          (line (cdr ret)))
-      (if (emamux-rt:spec-p file)
-          (emamux-rt:run-spec file line)
-        (emamux-rt:run-unit-test file method)))))
+\\{emamux-ruby-test-mode-map}"
+  :lighter ""
+  :keymap emamux-ruby-test-mode-map
+  :group 'emamux-ruby-test
+  (setq emamux-rt:project-root (projectile-project-root))
+  (setq emamux-rt:project-type (projectile-project-type)))
+
+(defun emamux-ruby-test-on ()
+  "Enable emamux-ruby-test minor mode."
+  (emamux-ruby-test-mode 1))
+
+(defun emamux-ruby-test-off ()
+  "Disable emamux-ruby-test minor mode."
+  (emamux-ruby-test-mode -1))
 
 (provide 'emamux-ruby-test)
 
