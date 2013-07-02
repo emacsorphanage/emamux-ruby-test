@@ -10,17 +10,34 @@ Requirements
 * tmux 1.5
 
 
+Installation
+------------
+Add following lines to your emacs config file
+
+    (require 'emamux-ruby-test)
+    (add-hook 'ruby-mode-hook 'emamux-ruby-test-mode)
+
+
 Basic Usage
 -----------
 
-Run test of this file within runner pane
+Run test of this project within runner pane
 
     M-x emamux-ruby-test:run-all
 
-Run test of focused test(current posion method or test/should block)
+Run test of this file within runner pane
 
-    M-x emamux-ruby-test:run-focused-test
+    M-x emamux-ruby-test:run-current-test
 
-Run test of focused contest(current posion context/describe block)
+Load ruby console dependent of current project type
 
-    M-x emamux-ruby-test:run-focused-context
+    M-x emamux-ruby-test:run-console
+
+
+Contribution
+------------
+Test you improvements in clean emacs configuration without any other packages.
+You cat simply to that with our console wrapper.
+
+    carton install
+    ./emacs.sh ../path/to/your/ruby/project/lib/project.rb
