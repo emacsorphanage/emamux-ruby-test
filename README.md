@@ -31,4 +31,13 @@ Run test of this file within runner pane
 
 Load ruby console dependent of current project type
 
-    M-x emamux-ruby-test:console
+    M-x emamux-ruby-test:run-console
+
+
+Contribution
+------------
+Test you improvements in clean emacs configuration without any other packages.
+You cat simply to that with our console wrapper.
+
+    carton install
+    ./emacs.sh ../path/to/your/ruby/project/lib/project.rb
