@@ -1,5 +1,8 @@
 Revision history for emamux-ruby.el
 
+0.1 2013-12-07
+  - Introduce global-emamux-ruby-test-mode.
+
 0.1 2013-01-07
   - Implement projects support.
 

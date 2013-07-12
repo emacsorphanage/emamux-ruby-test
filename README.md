@@ -10,28 +10,22 @@ Requirements
 * tmux 1.5
 
 
-Installation
-------------
-Add following lines to your emacs config file
+Features
+--------
+* Detect test framework and project scope automatically
+* Run all test from any project buffer
+* Run current test from test and implementation buffer
+* Open project console
 
-    (require 'emamux-ruby-test)
-    (add-hook 'ruby-mode-hook 'emamux-ruby-test-mode)
 
-
-Basic Usage
+Future work
 -----------
+* Send focused test/class into [tconsole](https://github.com/commondream/tconsole)
+* Send focused spec/context into [spork](https://github.com/sporkrb/spork) subprocess
 
-Run test of this project within runner pane
-
-    M-x emamux-ruby-test:run-all
-
-Run test of this file within runner pane
-
-    M-x emamux-ruby-test:run-current-test
-
-Load ruby console dependent of current project type
-
-    M-x emamux-ruby-test:run-console
+Usage
+-----
+For more info please visit comment section in `emamux-ruby-test.el`.
 
 
 Contribution
