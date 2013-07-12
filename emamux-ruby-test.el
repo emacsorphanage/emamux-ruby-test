@@ -27,6 +27,11 @@
 ;; To use emamux-ruby-test, add the following code into your init.el or .emacs:
 ;;
 ;;    (require 'emamux-ruby-test)
+;;    (global-emamux-ruby-test-mode)
+;;
+;; To use emamux-ruby-test with specific mode only, add folowing:
+;;
+;;    (require 'emamux-ruby-test)
 ;;    (add-hook 'ruby-mode-hook 'emamux-ruby-test-mode)
 ;;
 ;; emamux-ruby-test provides following commands:
@@ -43,9 +48,6 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'cl))
-
 (require 'emamux)
 (require 'projectile)
 
@@ -58,22 +60,56 @@
   :group 'emamux-ruby-test
   :type 'string)
 
-(defvar emamux-rt:project-root nil
-  "Absolute path to ruby project.")
-
-(defvar emamux-rt:project-type nil
-  "Ruby project type specification.")
-
-(mapc #'make-variable-buffer-local
-      (list 'emamux-rt:project-root
-            'emamux-rt:project-type))
+(defcustom emamux-ruby-test-mode-lighter " Test"
+  "Lighter used in emamux-ruby-test-mode."
+  :group 'emamux-ruby-test
+  :type 'string)
 
 
-;;; Projects functions.
+;;; Utility functions.
+
+(defun emamux-rt:project-root ()
+  "Absolute path to ruby project."
+  (let ((projectile-require-project-root t))
+    (ignore-errors
+      (projectile-project-root))))
+
+(defun emamux-rt:project-type ()
+  "Ruby project type specification."
+  (let ((projectile-require-project-root t))
+    (ignore-errors
+      (projectile-project-type))))
+
+(defun emamux-rt:source-file-p (file)
+  "Return t if FILE is a ruby source."
+  (and file
+       (file-regular-p file)
+       (s-ends-with? ".rb" file)))
+
+(defun emamux-rt:project-p ()
+  "Return t if PROJ is a ruby language project."
+  (or (emamux-rt:rails-project-p)
+      (emamux-rt:ruby-project-p)))
+
+(defun emamux-rt:rails-project-p ()
+  "Return t if PROJ is a rails framework project."
+  (s-starts-with? "rails" (symbol-name (emamux-rt:project-type))))
+
+(defun emamux-rt:ruby-project-p ()
+  "Return t if PROJ is a rails framework project."
+  (s-starts-with? "ruby" (symbol-name (emamux-rt:project-type))))
+
+(defun emamux-rt:test-unit-p ()
+  "Return t if PROJ is a rails framework project."
+  (s-ends-with? "test" (symbol-name (emamux-rt:project-type))))
+
+(defun emamux-rt:rspec-p ()
+  "Return t if PROJ is a rails framework project."
+  (s-ends-with? "rspec" (symbol-name (emamux-rt:project-type))))
 
 (defun emamux-rt:relative-file-name (file)
   "Return relative path name for FILE."
-  (substring file (length emamux-rt:project-root)))
+  (substring file (length (emamux-rt:project-root))))
 
 (defun emamux-rt:relative-test-name (file)
   "Return relative test name for FILE."
@@ -82,23 +118,32 @@
     (or (projectile-find-matching-test file)
         (error "No corresponding test/spec found"))))
 
+
+;;; Projects functions.
+
 (defun emamux-rt:test-command ()
   "Return command to test whole project"
-  (projectile-test-command emamux-rt:project-root))
+  (projectile-test-command (emamux-rt:project-root)))
 
 (defun emamux-rt:console-command ()
   "Return command appropriate to start project console."
   (cond
-   ((member emamux-rt:project-type '(rails-rspec rails-test)) "bundle exec rails console")
-   ((member emamux-rt:project-type '(ruby-rspec ruby-test)) "bundle console")
-   (t (error "No console type found"))))
+   ((emamux-rt:rails-project-p)
+    "bundle exec rails console")
+   ((emamux-rt:ruby-project-p)
+    "bundle console")
+   (t
+    (error "No console type found"))))
 
 (defun emamux-rt:current-test-pattern ()
   "Return string appropriate for formatting current test command."
   (cond
-   ((member emamux-rt:project-type '(rails-rspec ruby-rspec)) (concat projectile-ruby-rspec-cmd " %s"))
-   ((member emamux-rt:project-type '(rails-test ruby-test)) (concat projectile-ruby-test-cmd " TEST=%s"))
-   (t (error "No test engine found"))))
+   ((emamux-rt:rspec-p)
+    "bundle exec rspec %s")
+   ((emamux-rt:test-unit-p)
+    "bundle exec rake test TEST=%s")
+   (t
+    (error "No test engine found"))))
 
 
 ;;; Runner functions.
@@ -106,21 +151,28 @@
 (defun emamux-ruby-test:run-all ()
   "Run all tests/specs in the current project."
   (interactive)
-  (emamux:run-command (emamux-rt:test-command) emamux-rt:project-root))
+  (emamux:run-command
+   (emamux-rt:test-command)
+   (emamux-rt:project-root)))
 
 (defun emamux-ruby-test:run-console ()
   "Load ruby console dependent of current project type."
   (interactive)
-  (emamux:run-command (emamux-rt:console-command) emamux-rt:project-root))
+  (emamux:run-command
+   (emamux-rt:console-command)
+   (emamux-rt:project-root)))
 
 (defun emamux-ruby-test:run-current-test ()
   "Run all tests/specs in the current file."
   (interactive)
-  (emamux:run-command
-   (format
-    (emamux-rt:current-test-pattern)
-    (emamux-rt:relative-test-name (buffer-file-name)))
-   emamux-rt:project-root))
+  (let ((file (buffer-file-name)))
+    (if (not (emamux-rt:source-file-p file))
+        (error "Can't find current test")
+      (emamux:run-command
+       (format
+        (emamux-rt:current-test-pattern)
+        (emamux-rt:relative-test-name file))
+       (emamux-rt:project-root)))))
 
 
 ;;; Minor mode definition.
@@ -139,19 +191,23 @@
   "Keymap for emamux-ruby-test mode.")
 
 ;;;###autoload
+
 (define-minor-mode emamux-ruby-test-mode
   "Minor mode to Ruby test with emamux.
 
 \\{emamux-ruby-test-mode-map}"
-  :lighter ""
+  :lighter emamux-ruby-test-mode-lighter
   :keymap emamux-ruby-test-mode-map
-  :group 'emamux-ruby-test
-  (setq emamux-rt:project-root (projectile-project-root))
-  (setq emamux-rt:project-type (projectile-project-type)))
+  :group 'emamux-ruby-test)
+
+(define-globalized-minor-mode global-emamux-ruby-test-mode
+  emamux-ruby-test-mode
+  emamux-ruby-test-on)
 
 (defun emamux-ruby-test-on ()
-  "Enable emamux-ruby-test minor mode."
-  (emamux-ruby-test-mode 1))
+  "Enable emamux-ruby-test minor mode only if current buffer is a part of ruby project."
+  (when (emamux-rt:project-p)
+    (emamux-ruby-test-mode 1)))
 
 (defun emamux-ruby-test-off ()
   "Disable emamux-ruby-test minor mode."
