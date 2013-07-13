@@ -1,0 +1,16 @@
+(ert-deftest focused-test-with-def ()
+  (flet ((looking-at-p (str) (s-contains? "def" str))
+         (buffer-substring-no-properties (a b) "def test_aaa_aaa")
+         (line-number-at-pos () 3))
+    (should (equal '(3 . "test_aaa_aaa") (emamux-rt:focused-test)))))
+
+(ert-deftest focused-test-with-test ()
+  (flet ((looking-at-p (str) (s-contains? "test" str))
+         (buffer-substring-no-properties (a b) "test \"aaa aaa\" do")
+         (line-number-at-pos () 3))
+    (should (equal '(3 . "test_aaa_aaa") (emamux-rt:focused-test)))))
+
+(ert-deftest focused-goal-with-class ()
+  (flet ((looking-at-p (str) (s-contains? "class" str))
+         (buffer-substring-no-properties (a b) "class Aaa::Bbb<Ccc"))
+    (should (equal '(1 . "Aaa::Bbb") (emamux-rt:focused-goal)))))
