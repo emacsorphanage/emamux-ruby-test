@@ -146,6 +146,63 @@
     (error "No test engine found"))))
 
 
+;;; Content functions.
+
+(defun emamux-rt:focused-test ()
+  "Return (LINE . DEFINITION) pair for current def/test/should above.
+Definition here is a form processed to be appropriate for sending it
+into external tools."
+  (save-excursion
+    (cl-flet
+        ((def-p () (looking-at-p "[ ]*def [a-zA-Z0-9_-]+"))
+         (test-p () (looking-at-p "[ ]*test ['\"][a-zA-Z0-9 _-]+['\"]")))
+      (beginning-of-line)
+      (while (not (or (def-p) (test-p)))
+        (if (eq (point) (point-min))
+            (error "Can't find focused test")
+          (previous-line)))
+      (let ((str
+             (buffer-substring-no-properties
+              (line-beginning-position)
+              (line-end-position))))
+        (cons
+         (line-number-at-pos)
+         (cond
+          ((def-p) (cadr (s-split "[ ()]+" str t)))
+          ((test-p) (s-join "_" (butlast (s-split "[ _'\"]+" str t))))))))))
+
+(defun emamux-rt:focused-goal ()
+  "Return (LINE . DEFINITION) pair for current class/context.
+Definition here is a form processed to be appropriate for sending it
+into external tools."
+  (save-excursion
+    (cl-flet
+        ((class-p () (looking-at-p "[ ]*class [a-zA-z0-9:]+")))
+      (beginning-of-line)
+      (while (not (class-p))
+        (if (eq (point) (point-min))
+            (error "Can't find focused goal")
+          (previous-line)))
+      (let ((str
+             (buffer-substring-no-properties
+              (line-beginning-position)
+              (line-end-position))))
+        (cons (line-number-at-pos)
+              (cond
+               ((class-p) (cadr (s-split "[ <]+" str t)))))))))
+
+
+;;; Services.
+
+(defun emamux-rt:tconsole ()
+  "Load tconsole tool for ruby test unit framework."
+  (if (not (emamux-rt:test-unit-p))
+      (error "TConsole appropriate for ruby test unit only")
+    (emamux:run-command
+     "bundle exec tconsole"
+     (emamux-rt:project-root))))
+
+
 ;;; Runner functions.
 
 (defun emamux-ruby-test:run-all ()
