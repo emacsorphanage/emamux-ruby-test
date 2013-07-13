@@ -194,13 +194,42 @@ into external tools."
 
 ;;; Services.
 
-(defun emamux-rt:tconsole ()
+(defvar emamux-rt:runned-services nil
+  "List variable stores ran test services in '(ROOT-PATH TYPE PANE-ID) form.")
+
+
+;;; Tconsole.
+
+(defun emamux-rt:run-tconsole ()
   "Load tconsole tool for ruby test unit framework."
   (if (not (emamux-rt:test-unit-p))
-      (error "TConsole appropriate for ruby test unit only")
+      (error "tconsole appropriate for ruby test unit only")
     (emamux:run-command
      "bundle exec tconsole"
      (emamux-rt:project-root))))
+
+(defun emamux-rt:tconsole-focused-test ()
+  "Return focused test appropriate for sending it in tconsole."
+  (let ((test (emamux-rt:focused-test))
+        (goal (emamux-rt:focused-goal)))
+    (when (< (car goal) (car test))
+      (format "%s#%s" (cdr goal) (cdr test)))))
+
+(defun emamux-rt:tconsole-focused-goal ()
+  "Return focused goal appropriate for sending it in tconsole."
+  (cdr (emamux-rt:focused-goal)))
+
+(defun emamux-rt:run-tconsole-focused-test ()
+  "Send focused test in tconsole."
+  (let ((current-pane (emamux:active-pane-id)))
+    (emamux:send-keys (emamux-rt:tconsole-focused-test) emamux:runner-pane-id)
+    (emamux:select-pane current-pane)))
+
+(defun emamux-rt:run-tconsole-focused-goal ()
+  "Send focused goal in tconsole."
+  (let ((current-pane (emamux:active-pane-id)))
+    (emamux:send-keys (emamux-rt:tconsole-focused-goal) emamux:runner-pane-id)
+    (emamux:select-pane current-pane)))
 
 
 ;;; Runner functions.
