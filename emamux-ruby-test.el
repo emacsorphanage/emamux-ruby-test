@@ -45,6 +45,12 @@
 ;; Load ruby console dependent of current project type
 ;;     M-x emamux-ruby-test:run-console
 ;;
+;; Run focused test/spec in test framework specific tool
+;;     M-x emamux-ruby-test:run-focused-test
+;;
+;; Run focused class/context in test framework specific tool
+;;     M-x emamux-ruby-test:run-focused-goal
+;;
 
 ;;; Code:
 
@@ -260,6 +266,30 @@ into external tools."
         (emamux-rt:relative-test-name file))
        (emamux-rt:project-root)))))
 
+(defun emamux-ruby-test:run-focused-test ()
+  "Run focused test/spec in test framework specific tool."
+  (interactive)
+  (let ((file (buffer-file-name)))
+    (cond
+     ((not (emamux-rt:source-file-p file))
+      (error "Can't find focused test/spec"))
+     ((emamux-rt:test-unit-p)
+      (emamux-rt:run-tconsole-focused-test))
+     (t
+      (error "No test engine found")))))
+
+(defun emamux-ruby-test:run-focused-goal ()
+  "Run focused class/context in test framework specific tool."
+  (interactive)
+  (let ((file (buffer-file-name)))
+    (cond
+     ((not (emamux-rt:source-file-p file))
+      (error "Can't find focused class/context"))
+     ((emamux-rt:test-unit-p)
+      (emamux-rt:run-tconsole-focused-goal))
+     (t
+      (error "No test engine found")))))
+
 
 ;;; Minor mode definition.
 
@@ -269,6 +299,8 @@ into external tools."
       (define-key prefix-map (kbd "T") 'emamux-ruby-test:run-all)
       (define-key prefix-map (kbd "c") 'emamux-ruby-test:run-console)
       (define-key prefix-map (kbd "t") 'emamux-ruby-test:run-current-test)
+      (define-key prefix-map (kbd ".") 'emamux-ruby-test:run-focused-test)
+      (define-key prefix-map (kbd ",") 'emamux-ruby-test:run-focused-goal)
       (define-key prefix-map (kbd "k") 'emamux:close-runner-pane)
       (define-key prefix-map (kbd "r") 'emamux:inspect-runner)
 
