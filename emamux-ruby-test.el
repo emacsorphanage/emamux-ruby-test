@@ -71,6 +71,17 @@
   :group 'emamux-ruby-test
   :type 'string)
 
+(defcustom emamux-ruby-test:tconsole-orientation 'horizonal
+  "Orientation of splitting tconsole pane"
+  :type '(choice (const :tag "Split pane vertial" vertical)
+                 (const :tag "Split pane horizonal" horizonal))
+  :group 'emamux)
+
+(defcustom emamux-ruby-test:tconsole-height 50
+  "Height of splitting tconsole pane"
+  :type  'integer
+  :group 'emamux)
+
 
 ;;; Utility functions.
 
@@ -165,7 +176,7 @@ into external tools."
       (beginning-of-line)
       (while (not (or (def-p) (test-p)))
         (if (eq (point) (point-min))
-            (error "Can't find focused test")
+            (error "Can't find focused test/spec")
           (previous-line)))
       (let ((str
              (buffer-substring-no-properties
@@ -187,7 +198,7 @@ into external tools."
       (beginning-of-line)
       (while (not (class-p))
         (if (eq (point) (point-min))
-            (error "Can't find focused goal")
+            (error "Can't find focused class/context")
           (previous-line)))
       (let ((str
              (buffer-substring-no-properties
@@ -216,7 +227,7 @@ into external tools."
          emamux-rt:runned-services)))
 
 (defun emamux-rt:service-alive-p (service)
-  "Check is SERVICE run in current project."
+  "Check if SERVICE run in current project."
   (not
    (null
     (--filter
@@ -236,18 +247,41 @@ into external tools."
     ;; Get pane id.
     (elt service 2)))
 
+(defun emamux-rt:service-pane-alive-p (service)
+  "Check if registered SERVICE has runner pane."
+  (and (emamux-rt:service-alive-p service)
+       (emamux:pane-alive-p (emamux-rt:service-pane-id service))))
+
 
 ;;; Tconsole.
 
 (defun emamux-rt:run-tconsole ()
   "Load tconsole tool for ruby test unit framework."
+  (if (emamux-rt:service-alive-p 'tconsole)
+      ;; Normally this mean that tconsole was started early
+      ;; but someone kill its pane or break it into another
+      ;; window. So we lost information about it and must
+      ;; unregister this service.
+      (emamux-rt:remove-service (emamux-rt:project-root) 'tconsole))
   (if (not (emamux-rt:test-unit-p))
       (error "tconsole appropriate for ruby test unit only")
-    (emamux:run-command
-     "bundle exec tconsole"
-     (emamux-rt:project-root))
+    (let ((emamux:default-orientation emamux-ruby-test:tconsole-orientation)
+          (emamux:runner-pane-height emamux-ruby-test:tconsole-height))
+      (emamux:run-command
+       "bundle exec tconsole"
+       (emamux-rt:project-root)))
     (emamux-rt:add-service (emamux-rt:project-root) 'tconsole emamux:runner-pane-id)
     (setq emamux:runner-pane-id nil)))
+
+(defun emamux-rt:tconsole-send-focus (focus)
+  "Send FOCUS in tconsole."
+  (let ((current-pane (emamux:active-pane-id)))
+    (unless (emamux-rt:service-pane-alive-p 'tconsole)
+      (emamux-rt:run-tconsole))
+    (emamux:send-keys
+     (emamux-rt:tconsole-focused-test)
+     (emamux-rt:service-pane-id 'tconsole))
+    (emamux:select-pane current-pane)))
 
 (defun emamux-rt:tconsole-focused-test ()
   "Return focused test appropriate for sending it in tconsole."
@@ -262,21 +296,11 @@ into external tools."
 
 (defun emamux-rt:run-tconsole-focused-test ()
   "Send focused test in tconsole."
-  (let ((current-pane (emamux:active-pane-id)))
-    (unless (emamux-rt:service-alive-p 'tconsole)
-      (emamux-rt:run-tconsole))
-    (emamux:send-keys
-     (emamux-rt:tconsole-focused-test)
-     (emamux-rt:service-pane-id 'tconsole))
-    (emamux:select-pane current-pane)))
+  (emamux-rt:tconsole-send-focus (emamux-rt:tconsole-focused-test)))
 
 (defun emamux-rt:run-tconsole-focused-goal ()
   "Send focused goal in tconsole."
-  (let ((current-pane (emamux:active-pane-id)))
-    (emamux:send-keys
-     (emamux-rt:tconsole-focused-goal)
-     (emamux-rt:service-pane-id 'tconsole))
-    (emamux:select-pane current-pane)))
+  (emamux-rt:tconsole-send-focus (emamux-rt:tconsole-focused-goal)))
 
 
 ;;; Runner functions.
