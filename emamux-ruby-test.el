@@ -201,7 +201,40 @@ into external tools."
 ;;; Services.
 
 (defvar emamux-rt:runned-services nil
-  "List variable stores ran test services in '(ROOT-PATH TYPE PANE-ID) form.")
+  "List variable stores ran test services in '(PATH SERVICE PANE-ID) form.")
+
+(defun emamux-rt:add-service (path service pane-id)
+  "Register running service."
+  (add-to-list 'emamux-rt:runned-services (list path service pane-id)))
+
+(defun emamux-rt:remove-service (path service)
+  "Unregister running service."
+  (setq emamux-rt:runned-services
+        (--remove
+         (and (eq service (cadr it))
+              (equal (car it) (emamux-rt:project-root)))
+         emamux-rt:runned-services)))
+
+(defun emamux-rt:service-alive-p (service)
+  "Check is SERVICE run in current project."
+  (not
+   (null
+    (--filter
+     (and (eq service (cadr it))
+          (equal (car it) (emamux-rt:project-root)))
+     emamux-rt:runned-services))))
+
+(defun emamux-rt:service-pane-id (service)
+  "Return pane id for SERVICE run in current project."
+  (unless (emamux-rt:service-alive-p service)
+    (error (format "No %s service running for this project." (symbol-name service))))
+  (let ((service
+         (car (--filter
+               (and (eq service (cadr it))
+                    (equal (car it) (emamux-rt:project-root)))
+               emamux-rt:runned-services))))
+    ;; Get pane id.
+    (elt service 2)))
 
 
 ;;; Tconsole.
@@ -212,7 +245,9 @@ into external tools."
       (error "tconsole appropriate for ruby test unit only")
     (emamux:run-command
      "bundle exec tconsole"
-     (emamux-rt:project-root))))
+     (emamux-rt:project-root))
+    (emamux-rt:add-service (emamux-rt:project-root) 'tconsole emamux:runner-pane-id)
+    (setq emamux:runner-pane-id nil)))
 
 (defun emamux-rt:tconsole-focused-test ()
   "Return focused test appropriate for sending it in tconsole."
@@ -228,13 +263,19 @@ into external tools."
 (defun emamux-rt:run-tconsole-focused-test ()
   "Send focused test in tconsole."
   (let ((current-pane (emamux:active-pane-id)))
-    (emamux:send-keys (emamux-rt:tconsole-focused-test) emamux:runner-pane-id)
+    (unless (emamux-rt:service-alive-p 'tconsole)
+      (emamux-rt:run-tconsole))
+    (emamux:send-keys
+     (emamux-rt:tconsole-focused-test)
+     (emamux-rt:service-pane-id 'tconsole))
     (emamux:select-pane current-pane)))
 
 (defun emamux-rt:run-tconsole-focused-goal ()
   "Send focused goal in tconsole."
   (let ((current-pane (emamux:active-pane-id)))
-    (emamux:send-keys (emamux-rt:tconsole-focused-goal) emamux:runner-pane-id)
+    (emamux:send-keys
+     (emamux-rt:tconsole-focused-goal)
+     (emamux-rt:service-pane-id 'tconsole))
     (emamux:select-pane current-pane)))
 
 
