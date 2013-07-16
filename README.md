@@ -1,4 +1,4 @@
-emamux-ruby-test
+emamux-ruby-test [![Build Status](https://travis-ci.org/syohex/emamux-ruby-test.png?branch=master)](https://travis-ci.org/syohex/emamux-ruby-test)
 ==================
 Ruby test with [emamux](https://github.com/syohex/emacs-emamux).
 
