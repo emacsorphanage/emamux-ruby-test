@@ -30,13 +30,16 @@ Please visit comment section in `emamux-ruby-test.el`.
 
 Contribution
 ------------
-Test you improvements in clean emacs configuration without any other packages.
-You cat simply to that with our console wrapper.
+Before sending any pull request with feature you implement do all things below.
 
-    carton install
-    ./run.sh emacs ../path/to/your/ruby/project/lib/project.rb
+Check your improvements in clean emacs configuration
 
-When you implement some feature, please write all necessary tests for it.
-Run it as simple as that.
+    script/emacs.sh ../path/to/your/ruby/project/lib/project.rb
 
-    ./run.sh test
+Write all necessary tests for it
+
+    make test
+
+Before push any commits run all tests in clean virtual environment
+
+    make vagrant-test
