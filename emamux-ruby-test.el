@@ -1,8 +1,9 @@
 ;;; emamux-ruby-test.el --- Ruby test with emamux
 
-;; Copyright (C) 2013 by Syohei YOSHIDA
+;; Copyright (C) 2013 by Syohei YOSHIDA, Malyshev Artem
 
-;; Author: Syohei YOSHIDA <syohex@gmail.com>
+;; Authors: Syohei YOSHIDA <syohex@gmail.com>
+;;          Malyshev Artem <proofit404@gmail.com>
 ;; URL: https://github.com/syohex/emamux-ruby-test
 ;; Package-Requires: ((emamux "0.01") (projectile "0.9.1"))
 
