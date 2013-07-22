@@ -279,9 +279,7 @@ into external tools."
   (let ((current-pane (emamux:active-pane-id)))
     (unless (emamux-rt:service-pane-alive-p 'tconsole)
       (emamux-rt:run-tconsole))
-    (emamux:send-keys
-     (emamux-rt:tconsole-focused-test)
-     (emamux-rt:service-pane-id 'tconsole))
+    (emamux:send-keys focus (emamux-rt:service-pane-id 'tconsole))
     (emamux:select-pane current-pane)))
 
 (defun emamux-rt:tconsole-focused-test ()
