@@ -88,6 +88,10 @@
   :type  'integer
   :group 'emamux)
 
+(unless (fboundp 'cl-flet)
+  (require 'cl)
+  (defalias 'cl-flet 'flet))
+
 
 ;;; Utility functions.
 
