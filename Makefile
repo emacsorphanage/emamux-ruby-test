@@ -1,10 +1,10 @@
 EMACS = emacs
-CARTON = carton
+CASK = cask
 VAGRANT = vagrant
 
 elpa:
-	$(CARTON) install
-	$(CARTON) update
+	$(CASK) install
+	$(CASK) update
 
 .PHONY: test
 test: elpa

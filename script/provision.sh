@@ -11,7 +11,7 @@ PACKAGES="make git emacs24 emacs24-el emacs24-common-non-dfsg"
 sudo apt-get install -qq $PACKAGES
 
 # Install Carton.
-CARTON_DIR=/tmp/carton
-rm -rf $CARTON_DIR
-git clone git://github.com/rejeep/carton.git $CARTON_DIR
-sudo ln -sf $CARTON_DIR/bin/carton /usr/local/bin/
+CASK_DIR=/tmp/cask
+rm -rf $CASK_DIR
+git clone git://github.com/rejeep/cask.git $CASK_DIR
+sudo ln -sf $CASK_DIR/bin/cask /usr/local/bin/
